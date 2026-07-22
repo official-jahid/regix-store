@@ -1,7 +1,6 @@
 import Header from "@/components/Header/Header";
 import ThemeProvider from "@/components/Providers/ThemeProvider";
-import { notoSansHeading, nunitoSans } from "@/lib/fonts";
-import { cn } from "@/lib/utils";
+import { geistMono, geistSans } from "@/lib/fonts";
 import { ReactNode } from "react";
 import "./globals.css";
 
@@ -13,12 +12,7 @@ const RootLayout = ({ children }: RootLayoutProps) => {
   return (
     <html
       lang="en"
-      className={cn(
-        "antialiased",
-        "font-sans",
-        nunitoSans.variable,
-        notoSansHeading.variable,
-      )}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning>
       <body>
         <ThemeProvider
@@ -27,7 +21,7 @@ const RootLayout = ({ children }: RootLayoutProps) => {
           enableSystem={false}>
           <Header />
 
-          <main className="mx-auto max-w-7xl">{children}</main>
+          <main className="mx-auto min-w-7xl">{children}</main>
         </ThemeProvider>
       </body>
     </html>

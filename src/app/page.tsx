@@ -1,22 +1,43 @@
-import ToastButton from "@/components/Buttons/ToastButton";
+import UserProfileCard from "@/components/UserProfileCard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Next.js Starter Fullstack",
-  description: "Production grade Fullstack Next.js starter template",
+  title: "Home | Auth App",
+  description: "Home page of auth profile project",
 };
 
 const page = () => {
   return (
-    <section className="grid h-dvh place-items-center">
-      <div className="space-y-4 text-center">
-        <h1 className="text-5xl font-semibold">Next.js Starter Fullstack</h1>
-        <h2 className="text-3xl">
-          Production grade Fullstack Next.js starter template
-        </h2>
-
-        <ToastButton />
-      </div>
+    <section className="grid grid-cols-3 place-items-center gap-4 pt-22 pb-3">
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
+      <UserProfileCard />
     </section>
   );
 };
