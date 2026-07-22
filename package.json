@@ -39,7 +39,7 @@
     "react-masonry-css": "^1.0.16",
     "react-toastify": "^11.0.5",
     "recharts": "^3.10.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "slugify": "^1.6.9",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
