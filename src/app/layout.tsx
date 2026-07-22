@@ -1,14 +1,19 @@
 import Header from "@/components/Header/Header";
 import ThemeProvider from "@/components/Providers/ThemeProvider";
+import { auth } from "@/lib/auth";
 import { geistMono, geistSans } from "@/lib/fonts";
+import { headers } from "next/headers";
 import { ReactNode } from "react";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 type RootLayoutProps = Readonly<{
   children: ReactNode;
 }>;
 
-const RootLayout = ({ children }: RootLayoutProps) => {
+const RootLayout = async ({ children }: RootLayoutProps) => {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   return (
     <html
       lang="en"
@@ -19,9 +24,12 @@ const RootLayout = ({ children }: RootLayoutProps) => {
           attribute={"class"}
           defaultTheme="dark"
           enableSystem={false}>
-          <Header />
-
-          <main className="mx-auto min-w-7xl">{children}</main>
+          <Header session={session as any} />
+          <main className="mx-auto min-h-screen">{children}</main>
+          <Toaster
+            richColors
+            position="top-right"
+          />
         </ThemeProvider>
       </body>
     </html>

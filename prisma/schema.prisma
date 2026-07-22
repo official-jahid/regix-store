@@ -11,16 +11,42 @@ datasource db {
   provider = "sqlite"
 }
 
+// ============================================================
+// AUTH MODELS (Better Auth — extended)
+// ============================================================
+
 model User {
-  id            String    @id
+  id            String   @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  role          String   @default("buyer") // buyer | business | seller | moderator | admin
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions               Session[]
+  accounts               Account[]
+  profile                Profile?
+  sellerProfile          SellerProfile?
+  businessProfile        BusinessProfile?
+  teamMembers            TeamMember[]
+  products               Product[]             @relation("SellerProducts")
+  ticketsAsBuyer         Ticket[]              @relation("BuyerTickets")
+  ticketsAsSeller        Ticket[]              @relation("SellerTickets")
+  cartItems              CartItem[]
+  wishlistItems          WishlistItem[]
+  reviews                Review[]
+  reviewResponses        ReviewResponse[]
+  notifications          Notification[]
+  activityLogs           ActivityLog[]
+  productViews           ProductView[]
+  reviewedKycSubmissions KYCSubmission[]       @relation("KYCReviewer")
+  subscriptions          UserSubscription[]
+  sentMessages           TicketMessage[]       @relation("MessageSender")
+  ticketStatusChanges    TicketStatusHistory[] @relation("StatusChanger")
+  subscriptionBoxes      SubscriptionBox[]
 
   @@unique([email])
   @@map("user")
@@ -72,4 +98,577 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// ============================================================
+// PROFILE MODELS
+// ============================================================
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?
+  website     String?
+  location    String?
+  socialLinks String? // JSON string
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profile")
+}
+
+model SellerProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  storeName          String
+  storeSlug          String   @unique
+  storeDescription   String?
+  bannerUrl          String?
+  logoUrl            String?
+  verificationStatus String   @default("pending") // pending | under_review | verified | rejected
+  kycStatus          String   @default("not_submitted") // not_submitted | pending | under_review | verified | rejected
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kycSubmission KYCSubmission?
+
+  @@index([storeSlug])
+  @@index([verificationStatus])
+  @@map("seller_profile")
+}
+
+model KYCSubmission {
+  id           String    @id @default(cuid())
+  sellerId     String    @unique
+  documentType String
+  documentUrl  String
+  status       String    @default("pending") // pending | under_review | verified | rejected
+  reviewNotes  String?
+  reviewedById String?
+  submittedAt  DateTime  @default(now())
+  reviewedAt   DateTime?
+
+  seller   SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  reviewer User?         @relation("KYCReviewer", fields: [reviewedById], references: [id])
+
+  @@index([status])
+  @@map("kyc_submission")
+}
+
+model BusinessProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String
+  industry    String?
+  companySize String?
+  taxId       String?
+  department  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamMembers TeamMember[]
+
+  @@map("business_profile")
+}
+
+model TeamMember {
+  id         String    @id @default(cuid())
+  businessId String
+  userId     String
+  role       String    @default("buyer") // admin | manager | buyer
+  invitedAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  business BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+  @@map("team_member")
+}
+
+// ============================================================
+// PRODUCT MODELS
+// ============================================================
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?
+  sortOrder   Int      @default(0)
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent          Category?        @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        Category[]       @relation("CategoryHierarchy")
+  products        Product[]
+  commissionRules CommissionRule[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([sortOrder])
+  @@map("category")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  products ProductTag[]
+
+  @@index([slug])
+  @@map("tag")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sellerId      String
+  title         String
+  slug          String   @unique
+  description   String?
+  price         Float
+  salePrice     Float?
+  currency      String   @default("USD")
+  status        String   @default("draft") // draft | pending_review | published | rejected | archived
+  categoryId    String
+  licenseType   String   @default("standard")
+  downloadLimit Int?
+  isFeatured    Boolean  @default(false)
+  viewCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  seller        User             @relation("SellerProducts", fields: [sellerId], references: [id])
+  category      Category         @relation(fields: [categoryId], references: [id])
+  tags          ProductTag[]
+  variants      ProductVariant[]
+  media         ProductMedia[]
+  reviews       Review[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  ticketItems   TicketItem[]
+  boxItems      BoxItem[]
+  productViews  ProductView[]
+  downloadLogs  DownloadLog[]
+
+  @@index([status, categoryId, createdAt])
+  @@index([slug])
+  @@index([sellerId, status])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@map("product")
+}
+
+model ProductVariant {
+  id            String   @id @default(cuid())
+  productId     String
+  name          String
+  price         Float
+  fileUrl       String?
+  fileSize      Int?
+  downloadLimit Int?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ticketItems  TicketItem[]
+  cartItems    CartItem[]
+  downloadLogs DownloadLog[]
+
+  @@index([productId])
+  @@map("product_variant")
+}
+
+model ProductMedia {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  type      String   @default("image") // image | video | preview
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  alt       String?
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("product_media")
+}
+
+model ProductTag {
+  id        String @id @default(cuid())
+  productId String
+  tagId     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, tagId])
+  @@map("product_tag")
+}
+
+model ProductView {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String?
+  viewedAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([productId, viewedAt])
+  @@index([userId, viewedAt])
+  @@map("product_view")
+}
+
+// ============================================================
+// CART & WISHLIST
+// ============================================================
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  variantId String?
+  quantity  Int      @default(1)
+  addedAt   DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([userId, productId, variantId])
+  @@index([userId])
+  @@map("cart_item")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  addedAt   DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_item")
+}
+
+// ============================================================
+// TICKET MODELS
+// ============================================================
+
+model Ticket {
+  id            String    @id @default(cuid())
+  buyerId       String
+  sellerId      String
+  status        String    @default("pending") // pending | under_review | contacted | negotiating | approved | rejected | cancelled | expired
+  totalAmount   Float?
+  currency      String    @default("USD")
+  intentMessage String?
+  companyInfo   String?
+  department    String?
+  budget        Float?
+  deadline      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  buyer  User @relation("BuyerTickets", fields: [buyerId], references: [id])
+  seller User @relation("SellerTickets", fields: [sellerId], references: [id])
+
+  items              TicketItem[]
+  messages           TicketMessage[]
+  statusHistory      TicketStatusHistory[]
+  downloadLogs       DownloadLog[]
+  subscriptionTicket SubscriptionTicket?
+  review             Review?
+
+  @@index([buyerId, status])
+  @@index([sellerId, status])
+  @@index([status, expiresAt])
+  @@map("ticket")
+}
+
+model TicketItem {
+  id        String  @id @default(cuid())
+  ticketId  String
+  productId String
+  variantId String?
+  quantity  Int     @default(1)
+  price     Float
+
+  ticket  Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_item")
+}
+
+model TicketMessage {
+  id            String    @id @default(cuid())
+  ticketId      String
+  senderId      String
+  content       String
+  attachmentUrl String?
+  createdAt     DateTime  @default(now())
+  readAt        DateTime?
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User   @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_message")
+}
+
+model TicketStatusHistory {
+  id          String   @id @default(cuid())
+  ticketId    String
+  status      String
+  changedById String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changedBy User   @relation("StatusChanger", fields: [changedById], references: [id])
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_status_history")
+}
+
+model DownloadLog {
+  id           String   @id @default(cuid())
+  ticketId     String
+  productId    String
+  variantId    String?
+  downloadedAt DateTime @default(now())
+  ipAddress    String?
+
+  ticket  Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([ticketId])
+  @@index([productId, downloadedAt])
+  @@map("download_log")
+}
+
+// ============================================================
+// REVIEW MODELS
+// ============================================================
+
+model Review {
+  id           String   @id @default(cuid())
+  productId    String
+  userId       String
+  ticketId     String   @unique
+  rating       Int // 1-5
+  content      String?
+  isVerified   Boolean  @default(false)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product  Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id])
+  ticket   Ticket          @relation(fields: [ticketId], references: [id])
+  response ReviewResponse?
+
+  @@index([productId, createdAt])
+  @@index([userId])
+  @@map("review")
+}
+
+model ReviewResponse {
+  id        String   @id @default(cuid())
+  reviewId  String   @unique
+  sellerId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  seller User   @relation(fields: [sellerId], references: [id])
+
+  @@map("review_response")
+}
+
+// ============================================================
+// SUBSCRIPTION MODELS
+// ============================================================
+
+model SubscriptionBox {
+  id          String   @id @default(cuid())
+  creatorId   String
+  name        String
+  description String?
+  slug        String   @unique
+  tier        String   @default("basic") // basic | pro | enterprise
+  price       Float
+  frequency   String   @default("monthly") // monthly | quarterly
+  status      String   @default("active") // active | inactive
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User @relation(fields: [creatorId], references: [id])
+
+  items             BoxItem[]
+  userSubscriptions UserSubscription[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("subscription_box")
+}
+
+model BoxItem {
+  id         String  @id @default(cuid())
+  boxId      String
+  productId  String
+  quantity   Int     @default(1)
+  isOptional Boolean @default(false)
+
+  box     SubscriptionBox @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+
+  @@unique([boxId, productId])
+  @@map("box_item")
+}
+
+model UserSubscription {
+  id               String    @id @default(cuid())
+  userId           String
+  boxId            String
+  status           String    @default("active") // active | paused | cancelled | expired
+  startDate        DateTime  @default(now())
+  nextDeliveryDate DateTime?
+  pausedUntil      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  box  SubscriptionBox @relation(fields: [boxId], references: [id])
+
+  tickets SubscriptionTicket[]
+
+  @@index([userId, status])
+  @@index([boxId])
+  @@map("user_subscription")
+}
+
+model SubscriptionTicket {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  ticketId       String   @unique
+  cycleDate      DateTime
+  createdAt      DateTime @default(now())
+
+  subscription UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  ticket       Ticket           @relation(fields: [ticketId], references: [id])
+
+  @@index([subscriptionId])
+  @@map("subscription_ticket")
+}
+
+// ============================================================
+// NOTIFICATION MODEL
+// ============================================================
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String // ticket_update | message | review | kyc | system
+  title       String
+  message     String?
+  relatedId   String?
+  relatedType String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notification")
+}
+
+// ============================================================
+// ADMIN & PLATFORM MODELS
+// ============================================================
+
+model CommissionRule {
+  id            String   @id @default(cuid())
+  categoryId    String?
+  sellerTier    String   @default("standard")
+  percentage    Float
+  effectiveFrom DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("commission_rule")
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  type      String    @default("info") // info | warning | update
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, startDate])
+  @@map("announcement")
+}
+
+model FeatureFlag {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  enabled           Boolean  @default(false)
+  rolloutPercentage Int      @default(100)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("feature_flag")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  metadata   String? // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@map("activity_log")
 }

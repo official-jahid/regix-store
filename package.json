@@ -1,5 +1,5 @@
 {
-  "name": "basic-auth-profile",
+  "name": "regix-store",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -21,15 +21,27 @@
     "better-auth": "^1.5.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.3.1",
+    "fuse.js": "^7.5.0",
+    "jotai": "^2.20.2",
     "lucide-react": "^0.577.0",
+    "motion": "^12.42.2",
     "next": "^16.2.1",
     "next-themes": "^0.4.6",
+    "nuqs": "^2.9.1",
+    "p-limit": "^7.3.1",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-dropzone": "^19.1.1",
     "react-hook-form": "^7.72.0",
+    "react-masonry-css": "^1.0.16",
     "react-toastify": "^11.0.5",
+    "recharts": "^3.10.0",
     "sharp": "^0.34.5",
+    "slugify": "^1.6.9",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "vaul": "^1.1.2",
     "zod": "^4.3.6"
@@ -64,5 +76,5 @@
   },
   "author": "Jahid Ekbal Mallick",
   "license": "MIT",
-  "homepage": "https://github.com/jahid-ekbal/basic-auth-profile"
+  "homepage": "https://github.com/official-jahid/regix-store"
 }
