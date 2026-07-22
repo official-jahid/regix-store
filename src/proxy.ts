@@ -14,11 +14,17 @@ const publicRoutes = [
   "/_next",
 ];
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public and static routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  // Allow public, auth, and static routes
+  // "/" must be matched exactly — not via startsWith — to avoid bypassing auth checks
+  if (
+    pathname === "/" ||
+    publicRoutes
+      .filter((r) => r !== "/")
+      .some((route) => pathname.startsWith(route))
+  ) {
     return NextResponse.next();
   }
 
