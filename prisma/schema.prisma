@@ -4,12 +4,11 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
-  runtime  = "nodejs"
+  runtime  = "bun"
 }
 
 datasource db {
-  provider = "libsql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
 }
 
 // ============================================================
